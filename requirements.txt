@@ -1,0 +1,11 @@
+uvicorn
+sqlalchemy
+openai
+pydantic
+pydantic[email]
+fastapi
+asyncpg
+python-jose
+passlib
+python-dotenv
+argon2_cffi
