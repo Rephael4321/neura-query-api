@@ -3,6 +3,7 @@ from ServerManager import ServerManager
 from models.PydanticModels import SignupUser, SigninUser, DBConnectionDetails, DBQuery, AIQuery
 from auth import get_current_user
 from engine import engine
+from db_details import db_details
 
 router = APIRouter()
 
@@ -31,6 +32,8 @@ async def signUp(
             detail=str(e)
         )
 
+    db_details[user.username] = {"provider": "", "metadata": []}
+
     return access_token
 
 @router.post(
@@ -52,6 +55,8 @@ async def signIn(
             status_code=400,
             detail=str(e)
         )
+    
+    db_details[user.username] = {"provider": "", "metadata": []}
 
     return access_token
 
@@ -99,7 +104,10 @@ async def fetchMetadata(
             detail=str(e)
         )
 
-    return {"message": response}
+    db_details[user["sub"]]["provider"] = db_connection_details.provider
+    db_details[user["sub"]]["metadata"] = response
+
+    return {"message": "metadata fetched successfully"}
 
 @router.post(
     path="/query_db",
@@ -114,8 +122,10 @@ async def queryDB(
     ) -> dict:
     """Query your database with db query"""
 
+    provider = db_details[user["sub"]]["provider"]
+
     try:
-        response = await manager.queryDB(db_query.provider, db_query.uri, db_query.query)
+        response = await manager.queryDB(provider, db_query.uri, db_query.query)
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -139,6 +149,9 @@ async def queryAI(
     ) -> dict:
     """Query AI for db query"""
 
-    response = await manager.queryAI(ai_query.metadata, ai_query.provider, ai_query.query)
+    provider = db_details[user["sub"]]["provider"]
+    metadata = db_details[user["sub"]]["metadata"]
+
+    response = await manager.queryAI(metadata, provider, ai_query.query)
 
     return {"message": response}

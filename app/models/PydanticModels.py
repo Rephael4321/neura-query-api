@@ -8,20 +8,14 @@ class SignupUser(SigninUser):
     name: str = Field(min_length=1, description="User actual name")
     email: EmailStr = Field(description="User email")
 
-class Provider(BaseModel):
-    provider: str = Field(description="Database provider")
-
-class Metadata(BaseModel):
-    metadata: list[str] = Field(description="Metadata of database")
-
-class DBConnectionDetails(Provider):
+class URI(BaseModel):
     uri: str = Field(description="Database URI")
 
-class DBMetadataDetails(Provider, Metadata):
-    pass
+class DBConnectionDetails(URI):
+    provider: str = Field(description="Database provider")
 
-class DBQuery(DBConnectionDetails):
+class DBQuery(URI):
     query: str = Field(description="Database query")
 
-class AIQuery(Provider, Metadata):
+class AIQuery(BaseModel):
     query: str = Field(description="Human readable query")

@@ -1,3 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine
 
-engine = create_async_engine("postgresql+asyncpg://myuser:mypassword@postgres_for_neura_query:5432/neura_query")
+from config import DB
+
+engine = create_async_engine(f"postgresql+asyncpg://myuser:mypassword@{DB}:5432/neura_query")
