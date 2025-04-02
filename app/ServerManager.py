@@ -3,11 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.future import select
 from models.ORM import User, Login
-from models.AlternatingMetadataKeywords import AlternatingMetadataKeywords
+from drivers.AlternatingMetadataKeywords import AlternatingMetadataKeywords
 from drivers.SQL import SQLDriver
 from datetime import timedelta
 from auth import hash_password, create_access_token, verify_password
-from AI import AI
+from ai.AI import AI
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
 import drivers
 
@@ -69,7 +69,6 @@ class ServerManager():
 
         metadata = await driver.fetchMetadata()
         metadata = [repr(table) for table in metadata]
-        print(metadata)
         return metadata
 
     async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
@@ -92,13 +91,16 @@ class ServerManager():
             if db_query.find(keyword.name) != -1:
                 metadata = await self.fetchMetadata(db_provider, db_uri)
                 result["metadata"] = metadata
-                print("metadata updated")
                 break
 
         return result
 
     async def queryAI(self, metadata: list[str], db_provider: str, query: str, db_uri: str) -> dict:
         ai = AI()
-        response = await ai.query(metadata, db_provider, query)
-        result = await self.queryDB(db_provider, db_uri, response)
-        return {"ai_response": response, "result": result}
+        response = await ai.route_prompt(metadata, db_provider, query)
+        a = {"result": "success", "type": "str", "message": "Query executed successfully"}
+        if response["responder"] == "DB":
+            result = await self.queryDB(db_provider, db_uri, response["content"])
+            return {"result": result, "command": response["content"]}
+        # return {"result": response["content"], "command": ""}
+        return {"result": {"result": "success", "type": "str", "message": response["content"]}, "command": ""}

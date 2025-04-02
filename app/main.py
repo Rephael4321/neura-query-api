@@ -2,7 +2,7 @@ import set_configs
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.controller import router
+from controller import router
 from ServerManager import ServerManager
 
 from config import ENVIRONMENT, CORS_ADDRESS
