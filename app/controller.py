@@ -3,8 +3,9 @@ from ServerManager import ServerManager
 from models.PydanticModels import SignupUser, SigninUser, DBConnectionDetails, DBQuery, AIQuery
 from auth import get_current_user
 from engine import engine
-from db_details import db_details
+from dbKit import DBKitManager
 
+db_kit_manager = DBKitManager()
 router = APIRouter()
 
 @router.get("/ping")
@@ -32,7 +33,7 @@ async def signUp(
             detail=str(e)
         )
 
-    db_details[user.username] = {"provider": "", "metadata": []}
+    db_kit_manager.setKit(user.username)
 
     return access_token
 
@@ -56,7 +57,7 @@ async def signIn(
             detail=str(e)
         )
     
-    db_details[user.username] = {"provider": "", "metadata": []}
+    db_kit_manager.setKit(user.username)
 
     return access_token
 
@@ -77,6 +78,8 @@ async def fetchMetadata(
     manager: ServerManager = Depends()
     ) -> dict:
     """Fetch metadata of your database"""
+
+    db_kit = db_kit_manager.getKit(user["sub"])
 
     try:
         response = await manager.fetchMetadata(db_connection_details.provider, db_connection_details.uri)
@@ -104,16 +107,13 @@ async def fetchMetadata(
             detail=str(e)
         )
 
-    db_details[user["sub"]]["provider"] = db_connection_details.provider
-    db_details[user["sub"]]["metadata"] = response
+    db_kit.setProvider(db_connection_details.provider)
+    db_kit.setMetadata(response)
 
     return {"message": "metadata fetched successfully"}
 
 @router.post(
     path="/query_db",
-    responses={
-        400: {"description": "Error: Multiple commands where given"},
-        }
 )
 async def queryDB(
     db_query: DBQuery,
@@ -122,15 +122,13 @@ async def queryDB(
     ) -> dict:
     """Query your database with db query"""
 
-    provider = db_details[user["sub"]]["provider"]
+    db_kit = db_kit_manager.getKit(user["sub"])
+    provider = db_kit.getProvider()
 
     try:
         response = await manager.queryDB(provider, db_query.uri, db_query.query)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
+        if response.get("metadata"):
+            db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
         raise HTTPException(
             status_code=400,
@@ -149,9 +147,16 @@ async def queryAI(
     ) -> dict:
     """Query AI for db query"""
 
-    provider = db_details[user["sub"]]["provider"]
-    metadata = db_details[user["sub"]]["metadata"]
+    db_kit = db_kit_manager.getKit(user["sub"])
+    provider = db_kit.getProvider()
+    metadata = db_kit.getMetadata()
 
-    response = await manager.queryAI(metadata, provider, ai_query.query)
+    try:
+        response = await manager.queryAI(metadata, provider, ai_query.query, ai_query.uri)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
-    return {"message": response}
+    return response

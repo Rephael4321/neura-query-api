@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import ResourceClosedError, ProgrammingError
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.schema import Table
 from sqlalchemy import MetaData
 from sqlalchemy import text
 import re
@@ -10,21 +11,21 @@ class SQLDriver():
     def __init__(self, db_uri):
         self.engine = create_async_engine(db_uri)
 
-    async def execute(self, query: str) -> list[dict]:
+    async def execute(self, query: str) -> dict:
         async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
         async with async_session() as session:
             try:
                 result = await session.execute(text(query))
-                result = [dict(row) for row in result.mappings().all()]
-                return result
+                result = {"result": "success", "type": "list", "message": [dict(row) for row in result.mappings().all()]}
             except ResourceClosedError:
                 await session.commit()
-                return [{"message": "Query executed successfully"}]
+                result = {"result": "success", "type": "str", "message": "Query executed successfully"}
             except ProgrammingError:
-                raise ValueError("Error: Multiple command where given")
+                result = {"result": "failed", "type": "str", "message": "Command execution failed"}
+            return result
 
-    async def fetchMetadata(self) -> list[str]:
+    async def fetchMetadata(self) -> list[Table]:
         try:
             metadata_tables = []
             async with self.engine.begin() as connection:
@@ -34,8 +35,7 @@ class SQLDriver():
                 for item in metadata.tables.items():
                     metadata_tables.append(item[1])
 
-                tables = [repr(table) for table in metadata_tables]
-                return tables
+                return metadata_tables
         except Exception as e:
             # Neon
             if type(e).__name__ == "InternalServerError" and str(e).startswith("password authentication failed"):

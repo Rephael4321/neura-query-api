@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.future import select
 from models.ORM import User, Login
+from models.AlternatingMetadataKeywords import AlternatingMetadataKeywords
 from drivers.SQL import SQLDriver
 from datetime import timedelta
 from auth import hash_password, create_access_token, verify_password
@@ -67,15 +68,37 @@ class ServerManager():
             raise UnboundLocalError("provider not supported")
 
         metadata = await driver.fetchMetadata()
+        metadata = [repr(table) for table in metadata]
+        print(metadata)
         return metadata
 
-    async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> list[dict]:
+    async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
         driver = self._getDriver(db_provider, db_uri)
 
-        result = await driver.execute(db_query)
+        db_queries_list = db_query.split(";")
+        if db_queries_list[-1].strip() == "":
+            db_queries_list.pop()
+        db_queries_list = list(map(lambda command: command.strip() + ";", db_queries_list))
+
+        success_rate = 0
+        for db_query in db_queries_list:
+            result = await driver.execute(db_query)
+            if result["result"] == "success":
+                success_rate += 1
+        print(f"{success_rate} out of {len(db_queries_list)} executed successfully.")
+
+        db_query = db_query.upper()
+        for keyword in AlternatingMetadataKeywords:
+            if db_query.find(keyword.name) != -1:
+                metadata = await self.fetchMetadata(db_provider, db_uri)
+                result["metadata"] = metadata
+                print("metadata updated")
+                break
+
         return result
 
-    async def queryAI(self, metadata: list[str], db_provider: str, query: str) -> str:
+    async def queryAI(self, metadata: list[str], db_provider: str, query: str, db_uri: str) -> dict:
         ai = AI()
         response = await ai.query(metadata, db_provider, query)
-        return response
+        result = await self.queryDB(db_provider, db_uri, response)
+        return {"ai_response": response, "result": result}

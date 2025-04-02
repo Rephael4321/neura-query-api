@@ -17,5 +17,5 @@ class DBConnectionDetails(URI):
 class DBQuery(URI):
     query: str = Field(description="Database query")
 
-class AIQuery(BaseModel):
+class AIQuery(URI):
     query: str = Field(description="Human readable query")
