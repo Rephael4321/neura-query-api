@@ -11,9 +11,6 @@ class SignupUser(SigninUser):
 class URI(BaseModel):
     uri: str = Field(description="Database URI")
 
-class DBConnectionDetails(URI):
-    provider: str = Field(description="Database provider")
-
 class DBQuery(URI):
     query: str = Field(description="Database query")
 

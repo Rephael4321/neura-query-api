@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from ServerManager import ServerManager
-from models.PydanticModels import SignupUser, SigninUser, DBConnectionDetails, DBQuery, AIQuery
+from models.PydanticModels import SignupUser, SigninUser, URI, DBQuery, AIQuery
 from auth import get_current_user
 from engine import engine
 from dbKit import DBKitManager
@@ -73,16 +73,18 @@ async def signIn(
             }
 )
 async def fetchMetadata(
-    db_connection_details: DBConnectionDetails,
+    uri: URI,
     user: dict = Depends(get_current_user),
     manager: ServerManager = Depends()
     ) -> dict:
     """Fetch metadata of your database"""
 
     db_kit = db_kit_manager.getKit(user["sub"])
+    db_kit.setProvider(manager.getProvider(uri.uri))
+    provider = db_kit.getProvider()
 
     try:
-        response = await manager.fetchMetadata(db_connection_details.provider, db_connection_details.uri)
+        response = await manager.fetchMetadata(provider, uri.uri)
     # Non existing provider
     except UnboundLocalError as e:
         raise HTTPException(
@@ -107,7 +109,6 @@ async def fetchMetadata(
             detail=str(e)
         )
 
-    db_kit.setProvider(db_connection_details.provider)
     db_kit.setMetadata(response)
 
     return {"message": "metadata fetched successfully"}

@@ -10,6 +10,9 @@ import re
 class SQLDriver():
     def __init__(self, db_uri):
         self.engine = create_async_engine(db_uri)
+    
+    async def getProvider(self):
+        return self.engine.dialect.name
 
     async def execute(self, query: str) -> dict:
         async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)

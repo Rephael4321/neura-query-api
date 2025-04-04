@@ -9,21 +9,10 @@ from datetime import timedelta
 from auth import hash_password, create_access_token, verify_password
 from ai.AI import AI
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
-import drivers
 
 class ServerManager():
-    def _getDriver(self, db_provider: str, db_uri: str) -> SQLDriver:
-        Drivers = drivers.Drivers
-
-        if db_provider.upper() == Drivers.NEON.name:
-            driver = drivers.neon.SQLDriver(db_uri)
-        elif db_provider.upper() == Drivers.SUPABASE.name:
-            driver = drivers.supabase.SQLDriver(db_uri)
-
-        return driver
-    
     async def _queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
-        driver = self._getDriver(db_provider, db_uri)
+        sql_driver = SQLDriver(db_uri)
 
         db_queries_list = db_query.split(";")
         if db_queries_list[-1].strip() == "":
@@ -32,7 +21,7 @@ class ServerManager():
 
         success_rate = 0
         for db_query in db_queries_list:
-            result = await driver.execute(db_query)
+            result = await sql_driver.execute(db_query)
             if result["result"] == "success":
                 success_rate += 1
         print(f"{success_rate} out of {len(db_queries_list)} executed successfully.")
@@ -85,13 +74,14 @@ class ServerManager():
         access_token = create_access_token(data={"sub": login.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
         return {"access_token": access_token, "token_type": "bearer"}
 
-    async def fetchMetadata(self, db_provider: str, db_uri: str) -> list[str]:
-        try:
-            driver = self._getDriver(db_provider, db_uri)
-        except UnboundLocalError as e:
-            raise UnboundLocalError("provider not supported")
+    async def getProvider(self, db_uri: str) -> str:
+        sql_driver = SQLDriver(db_uri)
+        return sql_driver.getProvider()
 
-        metadata = await driver.fetchMetadata()
+    async def fetchMetadata(self, str, db_uri: str) -> list[str]:
+        sql_driver = SQLDriver(db_uri)
+
+        metadata = await sql_driver.fetchMetadata()
         metadata = [repr(table) for table in metadata]
         return metadata
 
