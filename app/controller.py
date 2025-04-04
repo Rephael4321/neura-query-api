@@ -127,7 +127,7 @@ async def queryDB(
 
     try:
         response = await manager.queryDB(provider, db_query.uri, db_query.query)
-        if response.get("metadata"):
+        if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
         raise HTTPException(
@@ -135,7 +135,7 @@ async def queryDB(
             detail=str(e)
         )
 
-    return {"message": response}
+    return response
 
 @router.post(
     path="/query_ai",
@@ -153,6 +153,8 @@ async def queryAI(
 
     try:
         response = await manager.queryAI(metadata, provider, ai_query.query, ai_query.uri)
+        if response["result"].get("metadata"):
+            db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
         raise HTTPException(
             status_code=400,

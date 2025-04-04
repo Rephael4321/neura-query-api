@@ -21,6 +21,30 @@ class ServerManager():
             driver = drivers.supabase.SQLDriver(db_uri)
 
         return driver
+    
+    async def _queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
+        driver = self._getDriver(db_provider, db_uri)
+
+        db_queries_list = db_query.split(";")
+        if db_queries_list[-1].strip() == "":
+            db_queries_list.pop()
+        db_queries_list = list(map(lambda command: command.strip() + ";", db_queries_list))
+
+        success_rate = 0
+        for db_query in db_queries_list:
+            result = await driver.execute(db_query)
+            if result["result"] == "success":
+                success_rate += 1
+        print(f"{success_rate} out of {len(db_queries_list)} executed successfully.")
+
+        db_query = db_query.upper()
+        for keyword in AlternatingMetadataKeywords:
+            if db_query.find(keyword.name) != -1:
+                metadata = await self.fetchMetadata(db_provider, db_uri)
+                result["metadata"] = metadata
+                break
+
+        return result
 
     async def signUp(self, engine: AsyncEngine, name: str, email: str, username: str, password: str) -> dict:
         async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
@@ -72,35 +96,13 @@ class ServerManager():
         return metadata
 
     async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
-        driver = self._getDriver(db_provider, db_uri)
-
-        db_queries_list = db_query.split(";")
-        if db_queries_list[-1].strip() == "":
-            db_queries_list.pop()
-        db_queries_list = list(map(lambda command: command.strip() + ";", db_queries_list))
-
-        success_rate = 0
-        for db_query in db_queries_list:
-            result = await driver.execute(db_query)
-            if result["result"] == "success":
-                success_rate += 1
-        print(f"{success_rate} out of {len(db_queries_list)} executed successfully.")
-
-        db_query = db_query.upper()
-        for keyword in AlternatingMetadataKeywords:
-            if db_query.find(keyword.name) != -1:
-                metadata = await self.fetchMetadata(db_provider, db_uri)
-                result["metadata"] = metadata
-                break
-
-        return result
+        result = await self._queryDB(db_provider, db_uri, db_query)
+        return {"result": result, "command": db_query}
 
     async def queryAI(self, metadata: list[str], db_provider: str, query: str, db_uri: str) -> dict:
         ai = AI()
         response = await ai.route_prompt(metadata, db_provider, query)
-        a = {"result": "success", "type": "str", "message": "Query executed successfully"}
         if response["responder"] == "DB":
-            result = await self.queryDB(db_provider, db_uri, response["content"])
+            result = await self._queryDB(db_provider, db_uri, response["content"])
             return {"result": result, "command": response["content"]}
-        # return {"result": response["content"], "command": ""}
         return {"result": {"result": "success", "type": "str", "message": response["content"]}, "command": ""}
