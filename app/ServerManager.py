@@ -9,8 +9,15 @@ from datetime import timedelta
 from auth import hash_password, create_access_token, verify_password
 from ai.AI import AI
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
+from config_log import logger
 
 class ServerManager():
+    def __init__(self):
+        self.username = ""
+    
+    def setUsername(self, username: str) -> None:
+        self.username = username
+
     async def _queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
         sql_driver = SQLDriver(db_uri)
 
@@ -24,12 +31,12 @@ class ServerManager():
             result = await sql_driver.execute(db_query)
             if result["result"] == "success":
                 success_rate += 1
-        print(f"{success_rate} out of {len(db_queries_list)} executed successfully.")
+        logger.info(f"Execution success rate: {success_rate} out of {len(db_queries_list)} executed successfully. USERNAME: {self.username}")
 
         db_query = db_query.upper()
         for keyword in AlternatingMetadataKeywords:
             if db_query.find(keyword.name) != -1:
-                metadata = await self.fetchMetadata(db_provider, db_uri)
+                metadata = await self.fetchMetadata(db_uri)
                 result["metadata"] = metadata
                 break
 
@@ -76,9 +83,9 @@ class ServerManager():
 
     async def getProvider(self, db_uri: str) -> str:
         sql_driver = SQLDriver(db_uri)
-        return sql_driver.getProvider()
+        return await sql_driver.getProvider()
 
-    async def fetchMetadata(self, str, db_uri: str) -> list[str]:
+    async def fetchMetadata(self, db_uri: str) -> list[str]:
         sql_driver = SQLDriver(db_uri)
 
         metadata = await sql_driver.fetchMetadata()
@@ -86,12 +93,15 @@ class ServerManager():
         return metadata
 
     async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
+        logger.info(f"DB query: {db_query}. USERNAME: {self.username}")
         result = await self._queryDB(db_provider, db_uri, db_query)
         return {"result": result, "command": db_query}
 
     async def queryAI(self, metadata: list[str], db_provider: str, query: str, db_uri: str) -> dict:
+        logger.info(f"User AI query: {query}. USERNAME: {self.username}")
         ai = AI()
         response = await ai.route_prompt(metadata, db_provider, query)
+        logger.info(f"AI response: {response}. USERNAME: {self.username}")
         if response["responder"] == "DB":
             result = await self._queryDB(db_provider, db_uri, response["content"])
             return {"result": result, "command": response["content"]}

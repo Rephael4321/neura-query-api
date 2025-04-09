@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.schema import Table
 from sqlalchemy import MetaData
 from sqlalchemy import text
+from time import sleep
 import re
 
 class SQLDriver():
@@ -15,6 +16,7 @@ class SQLDriver():
         return self.engine.dialect.name
 
     async def execute(self, query: str) -> dict:
+        sleep(3)
         async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
         async with async_session() as session:

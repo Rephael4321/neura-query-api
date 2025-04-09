@@ -4,6 +4,7 @@ from models.PydanticModels import SignupUser, SigninUser, URI, DBQuery, AIQuery
 from auth import get_current_user
 from engine import engine
 from dbKit import DBKitManager
+from config_log import logger
 
 db_kit_manager = DBKitManager()
 router = APIRouter()
@@ -79,31 +80,36 @@ async def fetchMetadata(
     ) -> dict:
     """Fetch metadata of your database"""
 
-    db_kit = db_kit_manager.getKit(user["sub"])
+    username = user["sub"]
+    manager.setUsername(username)
+    db_kit = db_kit_manager.getKit(username)
     db_kit.setProvider(manager.getProvider(uri.uri))
-    provider = db_kit.getProvider()
 
     try:
-        response = await manager.fetchMetadata(provider, uri.uri)
+        response = await manager.fetchMetadata(uri.uri)
     # Non existing provider
     except UnboundLocalError as e:
+        logger.error(f"UnboundLocalError, can't fetch metadata. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
     # Invalid username or password
     except ValueError as e:
+        logger.error(f"ValueError, can't fetch metadata. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
     # May happen after trying to use supabase with wrong credentials
     except TimeoutError as e:
+        logger.error(f"TimeoutError, can't fetch metadata. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Exception, can't fetch metadata. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
@@ -123,7 +129,9 @@ async def queryDB(
     ) -> dict:
     """Query your database with db query"""
 
-    db_kit = db_kit_manager.getKit(user["sub"])
+    username = user["sub"]
+    manager.setUsername(username)
+    db_kit = db_kit_manager.getKit(username)
     provider = db_kit.getProvider()
 
     try:
@@ -131,6 +139,7 @@ async def queryDB(
         if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
+        logger.error(f"Exception, query DB failed. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
@@ -148,7 +157,9 @@ async def queryAI(
     ) -> dict:
     """Query AI for db query"""
 
-    db_kit = db_kit_manager.getKit(user["sub"])
+    username = user["sub"]
+    manager.setUsername(username)
+    db_kit = db_kit_manager.getKit(username)
     provider = db_kit.getProvider()
     metadata = db_kit.getMetadata()
 
@@ -157,6 +168,7 @@ async def queryAI(
         if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
+        logger.error(f"Exception, query AI failed. {e}. USERNAME: {username}")
         raise HTTPException(
             status_code=400,
             detail=str(e)
