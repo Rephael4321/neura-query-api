@@ -83,7 +83,7 @@ async def fetchMetadata(
     username = user["sub"]
     manager.setUsername(username)
     db_kit = db_kit_manager.getKit(username)
-    db_kit.setProvider(manager.getProvider(uri.uri))
+    db_kit.setProvider(await manager.getProvider(uri.uri))
 
     try:
         response = await manager.fetchMetadata(uri.uri)

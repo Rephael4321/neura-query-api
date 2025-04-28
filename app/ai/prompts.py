@@ -1,4 +1,4 @@
-def route_prompt(metadata: list[str], db_provider: str):
+def route_prompt(metadata: list[str], db_provider: str) -> dict:
     messages_lst = [
         "I'm asking you a question related to my dataset reside on a DB.",
         "You can respond me with only three different types of responses, 'DB', 'AI', NONE",
@@ -6,6 +6,8 @@ def route_prompt(metadata: list[str], db_provider: str):
         "If you think the best answer can be given from the DB itself using a DB query, you respond with the following format, {'responder', 'DB', 'explanation': some_explanation}.",
         "If you think the best answer can be given by an AI, like when you can respond with free text, and you don't have to use the dataset from the DB, you respond with the following format, {'responder', 'AI', 'explanation': some_explanation}",
         "When you don't think you can answer the question by an AI or the dataset withing the DB, you respond with the following format, {'responder': 'NONE', 'explanation': some_explanation}",
+        "Don't put data out of your response object, and don't use triple quotes marks at all!",
+        "Mark all string with double quotes, not single quotes!",
         "Here some data that you might see useful.",
         f"Metadata of my tables: {metadata}.",
         f"My db provider is {db_provider}",
@@ -17,14 +19,13 @@ def route_prompt(metadata: list[str], db_provider: str):
         "Don't use single quotes in your response.",
         "Your queries go through a specialized interface, so feel free to create any query you want, it will be executed successfully.",
         "Remember, your response has to be an object with only two keys, 'responder', and 'explanation'!",
-        "Take into account that I might have typos, double check with the data I supplied you, you might find out that you can work with typos.",
-        "Mark all string with double quotes, not single quotes!"
+        "Take into account that I might have typos, double check with the data I supplied you, you might find out that you can work with typos."
         ]
     
     prompt_text = " ".join(messages_lst)
     return {"role": "system", "content": prompt_text}
 
-def query_db_prompt(metadata: list[str], db_provider: str):
+def query_db_prompt(metadata: list[str], db_provider: str) -> dict:
     messages_lst = [
         "You are helping me to create SQL queries.",
         f"Here is the metadata of my tables {str(metadata)}.",
@@ -39,8 +40,7 @@ def query_db_prompt(metadata: list[str], db_provider: str):
     prompt_text = " ".join(messages_lst)
     return {"role": "system", "content": prompt_text}
 
-
-def query_ai_prompt(metadata: list[str], db_provider: str):
+def query_ai_prompt(metadata: list[str], db_provider: str) -> dict:
     messages_lst = [
         "You are supplying me general answers about my DB.",
         "Here some data that you might see useful.",
@@ -51,7 +51,7 @@ def query_ai_prompt(metadata: list[str], db_provider: str):
     prompt_text = " ".join(messages_lst)
     return {"role": "system", "content": prompt_text}
 
-def query_none_prompt(metadata: list[str], db_provider: str):
+def query_none_prompt(metadata: list[str], db_provider: str) -> dict:
     messages_lst = [
         "You are explaining me why you cannot answer my question",
         "Here some data that you might see useful.",
