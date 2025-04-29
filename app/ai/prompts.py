@@ -11,6 +11,7 @@ def route_prompt(metadata: list[str], db_provider: str) -> dict:
         "Here some data that you might see useful.",
         f"Metadata of my tables: {metadata}.",
         f"My db provider is {db_provider}",
+        "When I'm asking for tables names, use the db with this query 'SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';'",
         "Feel free to respond with any DB query you think is useful. Your query will be executed directly through a special interface I have.",
         "Be creative, if I don't supply enough data and you can create some by your own, feel free to do so.",
         "You have no problems with permissions, you have permission to execute any query you want.",
@@ -30,6 +31,7 @@ def query_db_prompt(metadata: list[str], db_provider: str) -> dict:
         "You are helping me to create SQL queries.",
         f"Here is the metadata of my tables {str(metadata)}.",
         f"My DB provider is {db_provider}.",
+        "If I'm asking for tables names, use this query 'SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';'"
         "I'm only allowed to ask how to generate queries for my db. If it is something else, you reject me!",
         "If you can reply, you only reply the query. Nothing else! Write only the query, no extra marks around it!",
         "You cannot use parameters in your SQL commands, the commands you generate has to work on first execute.",
