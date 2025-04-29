@@ -41,7 +41,8 @@ async def signUp(
 @router.post(
         path="/sign_in",
         responses={
-            400: {"description": "username or password are incorrect!"}
+            400: {"description": "Exception, can't fetch metadata. *e*. USERNAME: *username*"},
+            400: {"description": "username or password are incorrect!"},
             }
         )
 async def signIn(
@@ -50,20 +51,36 @@ async def signIn(
     ) -> dict:
     """Sign in existing user"""
 
+    username = user.username
+    
     try:
-        access_token = await manager.signIn(engine, user.username, user.password)
+        response = await manager.signIn(engine, user.username, user.password)
+        db_kit_manager.setKit(username)
+        if response["has_db_uri"]:
+            manager.setUsername(username)
+            db_uri = await manager.getDbUri(engine, username)
+            db_kit = db_kit_manager.getKit(username)
+            db_kit.setProvider(await manager.getProvider(db_uri))
+            try:
+                metadata = await manager.fetchMetadata(db_uri)
+                db_kit.setMetadata(metadata)
+            except Exception as e:
+                logger.error(f"Exception, can't fetch metadata. {e}. USERNAME: {username}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=str(e)
+                )
+
     except ValueError as e:
         raise HTTPException(
             status_code=400,
             detail=str(e)
         )
-    
-    db_kit_manager.setKit(user.username)
 
-    return access_token
+    return response
 
 @router.post(
-    path="/fetch_metadata",
+    path="/connect_db",
         responses={
             400: {"description": "password authentication failed for user *db_owner*"},
             400: {"description": "database *db_name* does not exist"},
@@ -73,20 +90,22 @@ async def signIn(
             400: {"description": "connection failed, no respond for too long! check your connection details (port, host, etc.)"},
             }
 )
-async def fetchMetadata(
+async def connectDB(
     uri: URI,
     user: dict = Depends(get_current_user),
     manager: ServerManager = Depends()
     ) -> dict:
-    """Fetch metadata of your database"""
+    """Connect your DB with NeuraQuery"""
 
     username = user["sub"]
+    db_uri = uri.uri
     manager.setUsername(username)
     db_kit = db_kit_manager.getKit(username)
-    db_kit.setProvider(await manager.getProvider(uri.uri))
 
     try:
-        response = await manager.fetchMetadata(uri.uri)
+        db_kit.setProvider(await manager.getProvider(uri.uri))
+        await manager.addDbUri(engine, username, db_uri)
+        response = await manager.fetchMetadata(db_uri)
     # Non existing provider
     except UnboundLocalError as e:
         logger.error(f"UnboundLocalError, can't fetch metadata. {e}. USERNAME: {username}")
@@ -132,10 +151,11 @@ async def queryDB(
     username = user["sub"]
     manager.setUsername(username)
     db_kit = db_kit_manager.getKit(username)
+    db_uri = await manager.getDbUri(engine, username)
     provider = db_kit.getProvider()
 
     try:
-        response = await manager.queryDB(provider, db_query.uri, db_query.query)
+        response = await manager.queryDB(provider, db_uri, db_query.query)
         if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
@@ -160,11 +180,12 @@ async def queryAI(
     username = user["sub"]
     manager.setUsername(username)
     db_kit = db_kit_manager.getKit(username)
+    db_uri = await manager.getDbUri(engine, username)
     provider = db_kit.getProvider()
     metadata = db_kit.getMetadata()
 
     try:
-        response = await manager.queryAI(metadata, provider, ai_query.query, ai_query.uri)
+        response = await manager.queryAI(metadata, provider, ai_query.query, db_uri)
         if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:

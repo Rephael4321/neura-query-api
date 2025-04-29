@@ -11,7 +11,8 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
 
-    login = relationship("Login", back_populates="user", uselist=False)
+    login = relationship("Login", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    db_uris = relationship("DbUri", back_populates="user", cascade="all, delete-orphan")
 
 class Login(Base):
     __tablename__ = "logins"
@@ -22,3 +23,12 @@ class Login(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="login")
+
+class DbUri(Base):
+    __tablename__ = "db_uris"
+
+    id = Column(Integer, primary_key=True)
+    uri = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", back_populates="db_uris")

@@ -1,0 +1,23 @@
+2025-04-29 15:09:54,117 - ERROR - ValueError, can't fetch metadata. invalid connection details, check your username, password, or host!. USERNAME: admin
+2025-04-29 15:30:19,733 - INFO - User AI query: get me all authors.. USERNAME: admin
+2025-04-29 15:30:23,028 - INFO - AI response: {'responder': 'DB', 'content': 'SELECT * FROM authors;'}. USERNAME: admin
+2025-04-29 15:30:23,028 - ERROR - Exception, query AI failed. ServerManager._queryDB() missing 1 required positional argument: 'db_query'. USERNAME: admin
+2025-04-29 15:31:05,608 - INFO - User AI query: get me all authors.. USERNAME: admin
+2025-04-29 15:31:08,237 - INFO - AI response: {'responder': 'DB', 'content': 'SELECT * FROM authors;'}. USERNAME: admin
+2025-04-29 15:31:16,721 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin
+2025-04-29 15:34:38,551 - INFO - DB query: SELECT * FROM authors;. USERNAME: admin
+2025-04-29 15:34:46,929 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin
+2025-04-29 15:44:36,558 - INFO - DB query: SELECT * FROM authors;. USERNAME: admin
+2025-04-29 15:44:44,826 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin
+2025-04-29 15:44:51,298 - INFO - User AI query: get me all authors.. USERNAME: admin
+2025-04-29 15:44:54,068 - INFO - AI response: {'responder': 'DB', 'content': 'SELECT * FROM authors;'}. USERNAME: admin
+2025-04-29 15:45:02,344 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin
+2025-04-29 16:47:35,020 - INFO - User AI query: hello. USERNAME: admin
+2025-04-29 16:47:38,949 - INFO - AI response: {'responder': 'NONE', 'content': 'Hello! How can I assist you today? If you have any questions about databases, queries, or anything else, feel free to ask!'}. USERNAME: admin
+2025-04-29 16:47:51,040 - INFO - User AI query: What tables do I have?. USERNAME: admin
+2025-04-29 16:47:55,599 - INFO - AI response: {'responder': 'AI', 'content': 'You have two tables in your database:  1. **books**    - Columns:      - id (INTEGER, primary key)      - title (TEXT, not nullable)      - author_id (INTEGER, foreign key referencing authors.id, not nullable)      - published_year (INTEGER, not nullable)      - price (NUMERIC(10, 2), not nullable)  2. **authors**    - Columns:      - id (INTEGER, primary key)      - name (TEXT, not nullable)'}. USERNAME: admin
+2025-04-29 16:48:18,842 - INFO - User AI query: get me all authors. USERNAME: admin
+2025-04-29 16:48:21,440 - INFO - AI response: {'responder': 'DB', 'content': 'SELECT * FROM authors;'}. USERNAME: admin
+2025-04-29 16:48:29,708 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin
+2025-04-29 16:48:41,285 - INFO - DB query: SELECT * FROM books;. USERNAME: admin
+2025-04-29 16:48:49,516 - INFO - Execution success rate: 1 out of 1 executed successfully. USERNAME: admin

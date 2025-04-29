@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, selectinload
 from sqlalchemy.future import select
-from models.ORM import User, Login
+from models.ORM import User, Login, DbUri
 from drivers.AlternatingMetadataKeywords import AlternatingMetadataKeywords
 from drivers.SQL import SQLDriver
 from datetime import timedelta
@@ -18,7 +18,7 @@ class ServerManager():
     def setUsername(self, username: str) -> None:
         self.username = username
 
-    async def _queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
+    async def _queryDB(self, db_uri: str, db_query: str) -> dict:
         sql_driver = SQLDriver(db_uri)
 
         db_queries_list = db_query.split(";")
@@ -41,6 +41,19 @@ class ServerManager():
                 break
 
         return result
+
+    async def _getUserData(self, engine: AsyncEngine, username: str) -> Login:
+        async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+        async with async_session() as session:
+            result = await session.execute(
+                    select(Login).where(Login.username == username).options(
+                        selectinload(Login.user).selectinload(User.db_uris)
+                    )
+                )
+            user_data = result.scalar_one_or_none()
+
+        return user_data
 
     async def signUp(self, engine: AsyncEngine, name: str, email: str, username: str, password: str) -> dict:
         async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
@@ -65,21 +78,45 @@ class ServerManager():
         return {"access_token": access_token, "token_type": "bearer"}
 
     async def signIn(self, engine: AsyncEngine, username: str, password: str) -> dict:
+        user_data = await self._getUserData(engine, username)
+
+        if user_data is None:
+            raise ValueError(f"username or password are incorrect!")
+
+        hashed_password = user_data.password
+        verified_password = verify_password(password, hashed_password)
+        if not verified_password:
+            raise ValueError(f"username or password are incorrect!")
+
+        has_db_uri = False
+        if user_data.user.db_uris:
+            has_db_uri = True
+
+        access_token = create_access_token(data={"sub": user_data.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+        return {"access_token": access_token, "token_type": "bearer", "has_db_uri": has_db_uri}
+
+    async def addDbUri(self, engine: AsyncEngine, username: str, new_db_uri: str) -> None:
+        user_data = await self._getUserData(engine, username)
+        user = user_data.user
+
         async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
         async with async_session() as session:
-            result = await session.execute(select(Login).where(Login.username == username))
-            login = result.scalar_one_or_none()
-            if login is None:
-                raise ValueError(f"username or password are incorrect!")
-            else:
-                hashed_password = login.password
-            verified_password = verify_password(password, hashed_password)
-            if (not verified_password):
-                raise ValueError(f"username or password are incorrect!")
+            user = await session.merge(user)
 
-        access_token = create_access_token(data={"sub": login.username}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-        return {"access_token": access_token, "token_type": "bearer"}
+            # TODO: Implement multiple db uri per user
+            for db_uri in user.db_uris:
+                await session.delete(db_uri)
+
+            new_db_uri = DbUri(uri=new_db_uri, user_id=user.id)
+            session.add(new_db_uri)
+            await session.commit()
+
+    async def getDbUri(self, engine: AsyncEngine, username: str) -> str:
+        user_data = await self._getUserData(engine, username)
+        
+        db_uri = user_data.user.db_uris[0].uri
+        return db_uri
 
     async def getProvider(self, db_uri: str) -> str:
         sql_driver = SQLDriver(db_uri)
@@ -94,7 +131,7 @@ class ServerManager():
 
     async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
         logger.info(f"DB query: {db_query}. USERNAME: {self.username}")
-        result = await self._queryDB(db_provider, db_uri, db_query)
+        result = await self._queryDB(db_uri, db_query)
         return {"result": result, "command": db_query}
 
     async def queryAI(self, metadata: list[str], db_provider: str, query: str, db_uri: str) -> dict:
@@ -103,6 +140,6 @@ class ServerManager():
         response = await ai.route_prompt(metadata, db_provider, query)
         logger.info(f"AI response: {response}. USERNAME: {self.username}")
         if response["responder"] == "DB":
-            result = await self._queryDB(db_provider, db_uri, response["content"])
+            result = await self._queryDB(db_uri, response["content"])
             return {"result": result, "command": response["content"]}
         return {"result": {"result": "success", "type": "str", "message": response["content"]}, "command": ""}

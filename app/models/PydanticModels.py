@@ -11,8 +11,8 @@ class SignupUser(SigninUser):
 class URI(BaseModel):
     uri: str = Field(description="Database URI")
 
-class DBQuery(URI):
+class DBQuery(BaseModel):
     query: str = Field(description="Database query")
 
-class AIQuery(URI):
+class AIQuery(BaseModel):
     query: str = Field(description="Human readable query")
