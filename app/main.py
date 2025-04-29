@@ -14,7 +14,7 @@ def getManager():
 app = FastAPI(
     title="Neura Query",
     description="Neura Query served by rephael4321",
-    version="1.2.1"
+    version="1.2.2"
 )
 
 app.add_middleware(
