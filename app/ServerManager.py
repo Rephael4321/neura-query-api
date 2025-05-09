@@ -129,7 +129,7 @@ class ServerManager():
         metadata = [repr(table) for table in metadata]
         return metadata
 
-    async def queryDB(self, db_provider: str, db_uri: str, db_query: str) -> dict:
+    async def queryDB(self, db_uri: str, db_query: str) -> dict:
         logger.info(f"DB query: {db_query}. USERNAME: {self.username}")
         result = await self._queryDB(db_uri, db_query)
         return {"result": result, "command": db_query}

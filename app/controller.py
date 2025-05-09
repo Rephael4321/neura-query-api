@@ -152,10 +152,9 @@ async def queryDB(
     manager.setUsername(username)
     db_kit = db_kit_manager.getKit(username)
     db_uri = await manager.getDbUri(engine, username)
-    provider = db_kit.getProvider()
 
     try:
-        response = await manager.queryDB(provider, db_uri, db_query.query)
+        response = await manager.queryDB(db_uri, db_query.query)
         if response["result"].get("metadata"):
             db_kit.setMetadata(response.pop("metadata"))
     except Exception as e:
