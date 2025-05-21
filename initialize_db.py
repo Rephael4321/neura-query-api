@@ -1,54 +1,35 @@
+from shared.models.ORM import UsersBase, RequestsBase
 from sqlalchemy import create_engine
-from sqlalchemy import text
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy_utils import database_exists, drop_database, create_database
 
-Base = declarative_base()
+DB_URI = "postgresql+psycopg2://myuser:mypassword@44.204.22.70:5432"
+USERS_DB = DB_URI + "/users"
+REQUESTS_DB = DB_URI + "/requests"
 
-class User(Base):
-    __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    email = Column(String, nullable=False, unique=True)
+def deleteDbs() -> None:
+    if database_exists(USERS_DB):
+        drop_database(USERS_DB)
+    if database_exists(REQUESTS_DB):
+        drop_database(REQUESTS_DB)
 
-    login = relationship("Login", back_populates="user", cascade="all, delete-orphan", uselist=False)
-    db_uris = relationship("DbUri", back_populates="user", cascade="all, delete-orphan")
 
-class Login(Base):
-    __tablename__ = "logins"
+def initializeUsersDb() -> None:
+    create_database(USERS_DB)
+    engine = create_engine(USERS_DB)
+    UsersBase.metadata.create_all(engine)
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String, nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    user = relationship("User", back_populates="login")
+def initializeRequestsDb() -> None:
+    create_database(REQUESTS_DB)
+    engine = create_engine(REQUESTS_DB)
+    RequestsBase.metadata.create_all(engine)
 
-class DbUri(Base):
-    __tablename__ = "db_uris"
 
-    id = Column(Integer, primary_key=True)
-    uri = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+def main() -> None:
+    deleteDbs()
+    initializeUsersDb()
+    initializeRequestsDb()
 
-    user = relationship("User", back_populates="db_uris")
 
-postgres_db_uri = "postgresql+psycopg2://myuser:mypassword@localhost:5432/postgres"
-
-postgres_engine = create_engine(postgres_db_uri)
-
-db_name = "neura_query"
-
-create_db_query = f"CREATE DATABASE {db_name};"
-
-with postgres_engine.connect() as connection:
-    connection.execute(text("commit"))
-    connection.execute(text(create_db_query))
-
-neura_query_db_uri = "postgresql+psycopg2://myuser:mypassword@localhost:5432/neura_query"
-
-neura_query_engine = create_engine(neura_query_db_uri)
-
-Base.metadata.create_all(neura_query_engine)
+main()

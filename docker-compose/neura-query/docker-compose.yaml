@@ -1,0 +1,57 @@
+services:
+    postgres:
+        container_name: postgres
+        image: postgres:17.4
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "myuser"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - neura_query_data:/var/lib/postgresql/data
+        networks:
+            - default
+
+    fastapi:
+        container_name: fastapi
+        ports:
+            - "8888:8888"
+        build:
+            context: .
+            dockerfile: fastapi/Dockerfile
+        environment:
+            ENVIRONMENT: "DEV"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: on-failure
+        networks:
+            - default
+
+    manager:
+        container_name: manager
+        build:
+            context: .
+            dockerfile: manager/Dockerfile
+        environment:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            ENVIRONMENT: "DEV"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: on-failure
+        networks:
+            - default
+
+volumes:
+    neura_query_data:
+
+networks:
+  default:
+    external:
+      name: neura-query-shared-net

@@ -19,8 +19,9 @@ class DBKitManager():
     def __init__(self):
         self.objects: dict[str, DBKit] = dict()
     
-    def setKit(self, username: str) -> None:
-        self.objects[username] = DBKit()
+    def setKit(self, username: str) -> DBKit:
+        db_kit = self.objects[username] = DBKit()
+        return db_kit
     
-    def getKit(self, username: str) -> DBKit:
-        return self.objects[username]
+    def getKit(self, username: str) -> DBKit | None:
+        return self.objects.get(username)

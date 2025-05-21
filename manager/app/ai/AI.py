@@ -1,6 +1,7 @@
 from openai import AsyncOpenAI
 from ai.prompts import route_prompt, query_db_prompt, query_ai_prompt, query_none_prompt
 from ai.Responders import Responders
+from config_log import logger
 import ast
 
 class AI():
@@ -45,13 +46,9 @@ class AI():
             try:
                 response = ast.literal_eval(response)
             except Exception as e:
-                print("#####################################")
-                print("ERROR: From AI Module")
-                print(e)
-                print("#####################################")
-                print(type(response))
-                print(response)
-                continue
+                logger.error("Error from AI module, route_prompt method:")
+                logger.error("Can't evaluate dict from response!")
+                logger.error(f"Response: {response}")
             
             if response["responder"].upper() == Responders.DB.name:
                 response = await self.query_db(metadata, db_provider, query)
@@ -59,8 +56,25 @@ class AI():
                 response = await self.query_ai(metadata, db_provider, query)
             elif response["responder"].upper() == Responders.NONE.name:
                 response = await self.query_none(metadata, db_provider, query)
-            
+            else:
+                logger.error("Error from AI module:")
+                logger.error("Responder out of scope!")
+                logger.error(f"Responder: {response["responder"]}. (Responder scope is defined by Responders enum)")
+
             return response
+
+    async def query_db(self, metadata: list[str], db_provider: str, query: str) -> dict:
+        ai_response = await self.ai_client.chat.completions.create(
+            model=self.model,
+            messages=[
+                query_db_prompt(metadata, db_provider),
+                self._setUserQueryObject(query)
+            ]
+        )
+        command = ai_response.choices[0].message.content
+        command = command.replace("\n", " ")
+        response = { "responder": "DB", "content": command}
+        return response
 
     async def query_ai(self, metadata: list[str], db_provider: str, query: str) -> dict:
         ai_response = await self.ai_client.chat.completions.create(
@@ -74,19 +88,6 @@ class AI():
         content = ai_response.choices[0].message.content
         content = content.replace("\n", " ")
         response = { "responder": "AI", "content": content}
-        return response
-
-    async def query_db(self, metadata: list[str], db_provider: str, query: str) -> dict:
-        ai_response = await self.ai_client.chat.completions.create(
-            model=self.model,
-            messages=[
-                query_db_prompt(metadata, db_provider),
-                self._setUserQueryObject(query)
-            ]
-        )
-        command = ai_response.choices[0].message.content
-        command = command.replace("\n", " ")
-        response = { "responder": "DB", "content": command}
         return response
 
     async def query_none(self, metadata: list[str], db_provider: str, query: str) -> dict:

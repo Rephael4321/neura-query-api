@@ -11,14 +11,15 @@ def route_prompt(metadata: list[str], db_provider: str) -> dict:
         "Here some data that you might see useful.",
         f"Metadata of my tables: {metadata}.",
         f"My db provider is {db_provider}",
+        "Double check with the metadata I provided you, if I'm asking for data that is not available, tell me!",
         "When I'm asking for tables names, use the db with this query 'SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';'",
-        "Feel free to respond with any DB query you think is useful. Your query will be executed directly through a special interface I have.",
-        "Be creative, if I don't supply enough data and you can create some by your own, feel free to do so.",
-        "You have no problems with permissions, you have permission to execute any query you want.",
-        "You don't need any confirmation to execute queries.",
-        "Don't think too much, always try to generate a query, don't worry what will happen to the DB, I'm on it :)."
+        # "Feel free to respond with any DB query you think is useful. Your query will be executed directly through a special interface I have.",
+        # "Be creative, if I don't supply enough data and you can create some by your own, feel free to do so.",
+        # "You have no problems with permissions, you have permission to execute any query you want.",
+        # "You don't need any confirmation to execute queries.",
+        # "Don't think too much, always try to generate a query, don't worry what will happen to the DB, I'm on it :)."
         "Don't use single quotes in your response.",
-        "Your queries go through a specialized interface, so feel free to create any query you want, it will be executed successfully.",
+        # "Your queries go through a specialized interface, so feel free to create any query you want, it will be executed successfully.",
         "Remember, your response has to be an object with only two keys, 'responder', and 'explanation'!",
         "Take into account that I might have typos, double check with the data I supplied you, you might find out that you can work with typos."
         ]

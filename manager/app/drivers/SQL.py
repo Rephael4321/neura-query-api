@@ -5,29 +5,47 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.schema import Table
 from sqlalchemy import MetaData
 from sqlalchemy import text
-from time import sleep
+import decimal
 import re
 
 class SQLDriver():
-    def __init__(self, db_uri):
-        self.engine = create_async_engine(db_uri)
+    def __init__(self, uri):
+        self.engine = create_async_engine(uri)
     
+    def _convert_row(self, row):
+        return {
+            key: float(value) if isinstance(value, decimal.Decimal) else value
+            for key, value in row.items()
+        }
+
     async def getProvider(self):
         return self.engine.dialect.name
 
     async def execute(self, query: str) -> dict:
-        sleep(3)
         async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
         async with async_session() as session:
             try:
                 result = await session.execute(text(query))
-                result = {"result": "success", "type": "list", "message": [dict(row) for row in result.mappings().all()]}
+                rows = [self._convert_row(row) for row in result.mappings().all()]
+                result = {
+                    "result": "success",
+                    "type": "list",
+                    "message": rows
+                    }
             except ResourceClosedError:
                 await session.commit()
-                result = {"result": "success", "type": "str", "message": "Query executed successfully"}
+                result = {
+                    "result": "success",
+                    "type": "str",
+                    "message": "Query executed successfully"
+                    }
             except ProgrammingError:
-                result = {"result": "failed", "type": "str", "message": "Command execution failed"}
+                result = {
+                    "result": "failed",
+                    "type": "str",
+                    "message": "Command execution failed"
+                    }
             return result
 
     async def fetchMetadata(self) -> list[Table]:

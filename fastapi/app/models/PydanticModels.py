@@ -9,10 +9,14 @@ class SignupUser(SigninUser):
     email: EmailStr = Field(description="User email")
 
 class URI(BaseModel):
-    uri: str = Field(description="Database URI")
+    uri: str | None = Field(description="Database URI")
 
 class DBQuery(BaseModel):
     query: str = Field(description="Database query")
 
 class AIQuery(BaseModel):
     query: str = Field(description="Human readable query")
+
+class RequestStatus(BaseModel):
+    record_id: int = Field(description="Record ID for which a status is required")
+    topic_name: str = Field(description="Topic name for which a status is required")
