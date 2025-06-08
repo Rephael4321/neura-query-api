@@ -1,5 +1,5 @@
 from openai import AsyncOpenAI
-from ai.prompts import route_prompt, query_db_prompt, query_ai_prompt, query_none_prompt
+from ai.prompts import route_prompt_prompt, query_db_prompt, query_ai_prompt, query_none_prompt
 from ai.Responders import Responders
 from config_log import logger
 import ast
@@ -36,7 +36,7 @@ class AI():
             ai_response = await self.ai_client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    route_prompt(metadata, db_provider),
+                    route_prompt_prompt(metadata, db_provider),
                     self._setUserQueryObject(query)
                 ]
             )
