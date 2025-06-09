@@ -1,4 +1,4 @@
-def route_prompt_prompt(metadata: list[str], db_provider: str) -> dict:
+def route_user_query_prompt(metadata: list[str], db_provider: str) -> dict:
     messages_lst = [
         "I'm asking you a question related to my dataset reside on a DB.",
         "You can respond me with only three different types of responses, 'DB', 'AI', NONE",

@@ -1,5 +1,5 @@
 from openai import AsyncOpenAI
-from ai.prompts import route_prompt_prompt, query_db_prompt, query_ai_prompt, query_none_prompt
+from ai.prompts import route_user_query_prompt, query_db_prompt, query_ai_prompt, query_none_prompt
 from ai.Responders import Responders
 from config_log import logger
 import ast
@@ -31,12 +31,12 @@ class AI():
         print("AI Message:")
         print(message)
 
-    async def route_prompt(self, metadata: list[str], db_provider: str, query: str) -> dict:
+    async def route_user_query(self, metadata: list[str], db_provider: str, query: str) -> dict:
         while True:
             ai_response = await self.ai_client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    route_prompt_prompt(metadata, db_provider),
+                    route_user_query_prompt(metadata, db_provider),
                     self._setUserQueryObject(query)
                 ]
             )
@@ -46,7 +46,7 @@ class AI():
             try:
                 response = ast.literal_eval(response)
             except Exception as e:
-                logger.error("Error from AI module, route_prompt method:")
+                logger.error("Error from AI module, route_user_query method:")
                 logger.error("Can't evaluate dict from response!")
                 logger.error(f"Response: {response}")
             
